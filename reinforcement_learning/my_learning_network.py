@@ -79,7 +79,7 @@ input_shape = env_prep.observation_space.shape
 actions_number = env_prep.action_space.n
 
 # Model persistent file
-primary_model_file_name = "Phoenix_dueling_primary_model.h5"
+primary_model_file_name = "{}_dueling_primary_model.h5".format(game_name)
 
 # Training Parameters
 loss_function = losses.mean_squared_error
@@ -105,10 +105,11 @@ min_epsilon = 0.001
 
 # Plot result
 def plot_result(x_label, y_label, x, y, name):
-    plt.plot(x,y)
     plt.ylabel(x_label)
     plt.xlabel(y_label)
+    plt.plot(x, y)
     plt.savefig(name)
+    plt.close()
 
 
 # Run Training
@@ -150,7 +151,6 @@ while file_plot_1.exists():
 plot_result("Episode", "Steps", range(0, episodes), steps, name_plot_eps_steps)
 plot_result("Episode", "Steps", range(0, episodes), rewards, name_plot_eps_rewards)
 
-# TODO add steps rewards to csv
 import pandas as pd
 csv_name = "{}.csv".format(game_name)
 dict = {'steps': steps, 'rewards': rewards}
