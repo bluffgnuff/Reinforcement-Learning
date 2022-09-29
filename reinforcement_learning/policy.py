@@ -12,7 +12,7 @@ class Policy:
 
 class EpsilonGreedyPolicy(Policy):
 
-    def __init__(self, model, action_space_size, episodes=1, min_epsilon=0):
+    def __init__(self, model, action_space_size, min_epsilon=0, episodes=1):
         super().__init__(model)
         self.action_space_size = action_space_size
         self.min_epsilon = min_epsilon

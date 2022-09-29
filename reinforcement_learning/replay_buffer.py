@@ -2,6 +2,7 @@
 import numpy as np
 import scipy.stats as stats
 
+
 class ReplayBuffer:
     def __init__(self, max_buffer_size):
         self.max_buffer_size = max_buffer_size
@@ -22,7 +23,7 @@ class PrioritizedExperienceReplayRankBased(ReplayBuffer):
     alpha -- alpha parameter
     """
 
-    def __init__(self, max_buffer_size, step_to_heapify, alpha, beta):
+    def __init__(self, max_buffer_size, step_to_heapify, alpha):
         super().__init__(max_buffer_size=max_buffer_size)
         # (TD, experience)
         # Probably list is not the most efficient structure to use np array ?
@@ -30,14 +31,10 @@ class PrioritizedExperienceReplayRankBased(ReplayBuffer):
         self.alpha = alpha
         self.heapify_threshold = step_to_heapify  # here we stock the threshold to sort the buffer
         self.step_to_heapify = step_to_heapify  # number of next steps before heapify
-        self.beta = beta
         self.max_td_error = 0
 
     def set_alpha(self, alpha):
-        self.beta = alpha
-
-    def set_beta(self, beta):
-        self.beta = beta
+        self.alpha = alpha
 
     # Add experience in the buffer mapping it with its last TD_error
     def add_experience(self, experience):
@@ -70,7 +67,7 @@ class PrioritizedExperienceReplayRankBased(ReplayBuffer):
 
     # Get batch_size samples from the buffer; using the beta parameter to compute the importance sampling weight
     # Beta value can change while training we can delegate its control outside
-    def sample_experience(self, batch_size):
+    def sample_experience(self, batch_size, beta):
         experiences = []
         importance_sampling_weights = []
         n = len(self.replay_buffer) - 1
@@ -85,7 +82,7 @@ class PrioritizedExperienceReplayRankBased(ReplayBuffer):
             # importance sampling weights computation
             rank = index + 1
             pj = 1 / rank
-            importance_sampling_weights.append(((n * pj) ** (-self.beta)))
+            importance_sampling_weights.append(((n * pj) ** (-beta)))
             experiences.append(self.replay_buffer[index][1])
 
         # Normalization step

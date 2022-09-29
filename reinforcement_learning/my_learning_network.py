@@ -14,7 +14,9 @@ for id in sorted(env_ids):
         print(id)
 
 # Environment Configuration
+import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.use('Agg')
 # from gym import envs
 from gym.wrappers import AtariPreprocessing
 
@@ -32,13 +34,11 @@ print("Environment observation: ", env.observation_space)
 print("Environment action space: ", env.action_space)
 print("Action list: ", env.unwrapped.get_action_meanings())
 
-# plt.imshow(env.render(mode="rgb_array"))
 
 env_prep = AtariPreprocessing(env, frame_skip=env_frame_skip, grayscale_obs=True, noop_max=30)
 env_prep.reset()
 print("Environment preprocessed observation: ", env_prep.observation_space.shape)
 print("Environment preprocessed action space: ", env.action_space)
-# plt.imshow(env_prep.render(mode=env_render_mode))
 
 # Neural Network Creation
 from tensorflow import math
@@ -64,7 +64,6 @@ def create_dueling_model(input_shape, number_actions):
     # Combination of the streams: a Q value for each state
     q_values = value_stream_2 + math.subtract(advantage_stream_2, math.reduce_mean(advantage_stream_2, axis=1,
                                                                                    keepdims=True))
-
     # Alternative q_value
     # q_value = value_stream_2 + (advantage_stream_2 - backend.max(advantage_stream_2, axis=1, keepdims=True))
     return Model(inputs=[inputs], outputs=[q_values])
@@ -87,7 +86,7 @@ loss_function = losses.mean_squared_error
 batch_size = 32
 discount_factor = 0.95
 learning_rate = 6.25e-5
-episodes = 600
+episodes = 10
 clipping_value = 10
 
 # Dual DQN Training
@@ -97,20 +96,19 @@ freq_replacement = 50
 buffer_size = 2000
 step_to_heapify = 50
 alpha = 0.5
-beta = 0.5
+beta_max = 1
+beta_min = 0.5
 
 # Policy parameters
 min_epsilon = 0.001
 
 
 # Plot result
-def plot_result(x_label, y_label, x, y):
+def plot_result(x_label, y_label, x, y, name):
+    plt.plot(x,y)
     plt.ylabel(x_label)
     plt.xlabel(y_label)
-    plt.plot(x, y)
-    plt.show()
-
-    return
+    plt.savefig(name)
 
 
 # Run Training
@@ -128,19 +126,29 @@ model_target = create_dueling_model(input_shape, actions_number)
 print(model.summary())
 
 # Setting the optimizer with the clipping to have the norm <= 10
+
 optimizer = optimizers.Adam(learning_rate=learning_rate)
 policy_training = EpsilonGreedyPolicy(model, actions_number, episodes, min_epsilon)
-replay_buffer = PrioritizedExperienceReplayRankBased(buffer_size, step_to_heapify, alpha, beta)
+replay_buffer = PrioritizedExperienceReplayRankBased(buffer_size, step_to_heapify, alpha)
 agent = DuelDQNAgent(env_prep, model, model_target, policy_training, optimizer, replay_buffer)
 steps, rewards = agent.double_dqn_training(batch_size, loss_function, discount_factor, freq_replacement, clipping_value,
-                                           episodes)
+                                           beta_min, beta_max, episodes)
 
-# env_prep.close()
-# model_primary.save(primary_model_file_name)
-# plot_result("Episode", "Steps", max_episodes, steps)
+env_prep.close()
+model.save(primary_model_file_name)
+name_plot_eps_steps = "Training Episodes Steps"
+name_plot_eps_rewards = "Training Episodes Rewards"
 
+plot_result("Episode", "Steps", range(0, episodes), steps, name_plot_eps_steps)
+plot_result("Episode", "Steps", range(0, episodes), rewards, name_plot_eps_rewards)
+
+"""
 # Play
-# policy_training = EpsilonGreedyPolicy(model, actions_number, episodes = 0 , min_epsilon)
-# agent.set_policy(policy_training)
-# steps, reward = agent.play(env)
-# plot_result("Episode", "Rewards", max_episodes, rewards)
+policy_training = EpsilonGreedyPolicy(model, actions_number, min_epsilon)
+agent.set_policy(policy_training)
+steps, reward = agent.play(env)
+plot_steps_rewards = plot_result("Steps", "Rewards", steps, rewards)
+
+name_plot_eps_rewards = "Training Steps Rewards"
+plot_steps_rewards.savefig(name_plot_eps_rewards)
+"""

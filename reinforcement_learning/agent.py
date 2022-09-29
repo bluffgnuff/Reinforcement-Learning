@@ -1,3 +1,5 @@
+import math
+
 import tensorflow as tf
 import numpy as np
 
@@ -43,17 +45,28 @@ class DuelDQNAgent:
         clipped_gradients = [(tf.clip_by_norm(grad, clipping_value)) for grad in gradients]
         return clipped_gradients
 
+    def weighted_gradient(self, best_on_target_q_values, importance_sampling_weights, states, loss_function, mask,
+                          step_size=1):
+        with tf.GradientTape() as tape:
+            tape.watch(importance_sampling_weights)
+            all_q_values = self.model_primary(states)
+            q_values = tf.reduce_sum(all_q_values * mask, axis=1, keepdims=True)
+            loss_value = loss_function(best_on_target_q_values, q_values)
+            loss_corrected = tf.multiply(loss_value, importance_sampling_weights, step_size)
+        grads = tape.gradient(loss_corrected, self.model_primary.trainable_variables)
+        return grads, loss_value
+
     @staticmethod
-    def rescale_grad(gradients, rescaling_mask):
-        rescaled_gradients = gradients * rescaling_mask
-        print(rescaled_gradients.shape())
-        return rescaled_gradients
+    def rescale_grad(gradients, rescale_value, index):
+        tensor_to_scale = gradients[index]
+        rescaled_tensor = tf.multiply(tensor_to_scale, rescale_value)
+        gradients[index] = rescaled_tensor
+        return gradients
 
     # Collects samples of the previous experiences from the replay buffer
     # and use them to improve the weights update of the Neural Network.
-    def double_dqn_training_step(self, batch_size, loss_function, discount_factor, clipping_value, step_size=1):
-
-        indexes, experiences, importance_sampling_weights = self.replay_buffer.sample_experience(batch_size)
+    def double_dqn_training_step(self, batch_size, loss_function, discount_factor, clipping_value, beta, step_size=1):
+        indexes, experiences, importance_sampling_weights = self.replay_buffer.sample_experience(batch_size, beta)
         states, actions, rewards, next_states, dones = [np.array([experience[field_index] for experience in experiences]
                                                                  ) for field_index in range(5)]
 
@@ -71,36 +84,26 @@ class DuelDQNAgent:
 
         mask = tf.one_hot(actions, action_space)
         importance_sampling_weights = tf.convert_to_tensor(importance_sampling_weights, tf.float32)
-        with tf.GradientTape() as tape:
-            tape.watch(importance_sampling_weights)
-            all_q_values = self.model_primary(states)
-            q_values = tf.reduce_sum(all_q_values * mask, axis=1, keepdims=True)
-            loss_value = loss_function(best_on_target_q_values, q_values)
-            loss_corrected = tf.multiply(loss_value, importance_sampling_weights)
-        grads = tape.gradient(loss_corrected, self.model_primary.trainable_variables)
+        weighted_gradient, loss_value = self.weighted_gradient(best_on_target_q_values, importance_sampling_weights,
+                                                               states, loss_function, mask, step_size)
 
-        # OLD
-        # weight_change = td_errors * importance_sampling_weights * grads * step_size
-        # td_errors = tf.math.subtract(tf.math.add(rewards, discount_factor*best_on_target_q_values), q_values)
         for index, td_error in zip(indexes, loss_value):
             self.replay_buffer.update_td_error(index, td_error)
 
-        # TODO check how keras manage back propagation (is rescaling necessary?)
-        # We can use the mask to multiply the loss in the last convolutional layer by the scale (1/sqrt(2))
-        # The following code block can be useful to identify the right layer position
-        # for m in model.trainable_variables:
-        #     print("trainable_weights = ", m.name)
-        # rescaling_mask = [1, 1, 1, 1, (1 / tf.sqrt(2)), 1, 1, 1, 1, 1, 1]
-        # rescaled_grads = self.rescale_grad(weighted_gradient, rescaling_mask)
+        # We rescale the last convolutional layer to 1/sqrt(2) to balance the double backpropagation
+        rescale_value = (1 / math.sqrt(2))
+        # The index of the last sequential layer
+        index_gradient_to_rescale = 4
+        rescaled_grads = self.rescale_grad(weighted_gradient, rescale_value, index_gradient_to_rescale)
 
         # Since we are in a custom loop we have to clip the gradient by hand, we can't delegate it to the optimizer
-        clipped_gradients = self.gradient_clipping(grads, clipping_value)
+        clipped_gradients = self.gradient_clipping(rescaled_grads, clipping_value)
         # Application gradient descent trough optimizer
         self.optimizer.apply_gradients(zip(clipped_gradients, self.model_primary.trainable_variables))
 
     # We use the training step just when there is enough samples on the replay buffer
     def double_dqn_training(self, batch_size, loss_function, discount_factor, freq_replacement, clipping_value,
-                            max_episodes=600):
+                            beta_min, beta_max, max_episodes=600):
         rewards = [0]
         steps = [0]
 
@@ -109,6 +112,7 @@ class DuelDQNAgent:
             cumulative_reward = 0
             step = 0
             state = obs
+            beta = max(beta_min, (beta_max * episode / max_episodes))
 
             while True:
                 action, reward, next_state, done, info = self.play_one_step(state)
@@ -121,10 +125,8 @@ class DuelDQNAgent:
                     rewards.append(cumulative_reward)
                     steps.append(step)
                     break
-
                 if len(self.replay_buffer.replay_buffer) > batch_size:
-                    self.double_dqn_training_step(batch_size, loss_function, discount_factor, clipping_value)
-
+                    self.double_dqn_training_step(batch_size, loss_function, discount_factor, clipping_value, beta)
                 if step == freq_replacement:
                     self.model_target.set_weights(self.model_primary.get_weights())
                 state = next_state
