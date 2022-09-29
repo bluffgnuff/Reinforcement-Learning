@@ -79,7 +79,7 @@ input_shape = env_prep.observation_space.shape
 actions_number = env_prep.action_space.n
 
 # Model persistent file
-primary_model_file_name = "{}_dueling_primary_model.h5".format(game_name)
+primary_model_file_name = "{}_dueling_model".format(game_name)
 
 # Training Parameters
 loss_function = losses.mean_squared_error
@@ -100,7 +100,7 @@ beta_max = 1
 beta_min = 0.5
 
 # Policy parameters
-min_epsilon = 0.001
+min_epsilon = 0.5
 
 
 # Plot result
@@ -118,52 +118,68 @@ from pathlib import Path
 # Model creation
 file_primary = Path(primary_model_file_name)
 if file_primary.exists():
+    print("Found an existing model")
     model = load_model(primary_model_file_name)
 else:
+    print("Model not found, a new one will be crate")
     model = create_dueling_model(input_shape, actions_number)
 
-model_target = create_dueling_model(input_shape, actions_number)
 # Print a summary about the model
 print(model.summary())
 
-# Setting the optimizer with the clipping to have the norm <= 10
+# Setting the optimizer
+training = True
+if training:
+    model_target = create_dueling_model(input_shape, actions_number)
+    model_target.set_weights(model.get_weights())
+    optimizer = optimizers.Adam(learning_rate=learning_rate)
+    policy_training = EpsilonGreedyPolicy(model, actions_number, episodes=episodes, min_epsilon=min_epsilon)
+    replay_buffer = PrioritizedExperienceReplayRankBased(buffer_size, step_to_heapify, alpha)
+    agent = DuelDQNAgent(env_prep, model, model_target, policy_training, optimizer, replay_buffer)
+    steps, rewards = agent.double_dqn_training(batch_size, loss_function, discount_factor, freq_replacement,
+                                               clipping_value, beta_min, beta_max, episodes)
+    env_prep.close()
+    model.save(primary_model_file_name)
 
-optimizer = optimizers.Adam(learning_rate=learning_rate)
-policy_training = EpsilonGreedyPolicy(model, actions_number, episodes, min_epsilon)
-replay_buffer = PrioritizedExperienceReplayRankBased(buffer_size, step_to_heapify, alpha)
-agent = DuelDQNAgent(env_prep, model, model_target, policy_training, optimizer, replay_buffer)
-steps, rewards = agent.double_dqn_training(batch_size, loss_function, discount_factor, freq_replacement, clipping_value,
-                                           beta_min, beta_max, episodes)
+    ext = "png"
+    name_plot_eps_steps = "{} Training Episodes Steps.{}".format(game_name, ext)
+    name_plot_eps_rewards = "{} Training Episodes Rewards.{}".format(game_name, ext)
+    file_plot_1 = Path(name_plot_eps_steps)
+    file_plot_2 = Path(name_plot_eps_rewards)
+    i = 2
+    while file_plot_1.exists():
+        file_plot_1 = Path(name_plot_eps_steps)
+        name_plot_eps_steps = "{} Training Episodes Steps_{}.{}".format(game_name, i, ext)
+        name_plot_eps_rewards = "{} Training Episodes Rewards_{}.{}".format(game_name, i, ext)
+        i += 1
 
-env_prep.close()
-model.save(primary_model_file_name)
-name_plot_eps_steps = "Phoenix Training Episodes Steps"
-name_plot_eps_rewards = "Phoenix Training Episodes Rewards"
-i = 2
-file_plot_1 = Path(name_plot_eps_steps)
-file_plot_2 = Path(name_plot_eps_rewards)
+    plot_result("Episode", "Steps", range(1, episodes+1), steps, name_plot_eps_steps)
+    plot_result("Episode", "Steps", range(1, episodes+1), rewards, name_plot_eps_rewards)
 
-while file_plot_1.exists():
-    name_plot_eps_steps = "{} Training Episodes Steps_{}".format(game_name, i)
-    name_plot_eps_rewards = "{} Training Episodes Rewards_{}".format(game_name, i)
-    i += 1
+    import pandas as pd
+    csv_name = "{}.csv".format(game_name)
+    dict = {'steps': steps, 'rewards': rewards}
+    df = pd.DataFrame(dict)
+    df.to_csv(csv_name, mode='a', header=False)
 
-plot_result("Episode", "Steps", range(0, episodes), steps, name_plot_eps_steps)
-plot_result("Episode", "Steps", range(0, episodes), rewards, name_plot_eps_rewards)
 
-import pandas as pd
-csv_name = "{}.csv".format(game_name)
-dict = {'steps': steps, 'rewards': rewards}
-df = pd.DataFrame(dict)
-df.to_csv(csv_name, mode='a', header=False)
-
-"""
 # Play
-policy_training = EpsilonGreedyPolicy(model, actions_number, min_epsilon)
-agent.set_policy(policy_training)
-steps, reward = agent.play(env)
-plot_steps_rewards = plot_result("Steps", "Rewards", steps, rewards)
+play = False
+if play:
+    policy_play = EpsilonGreedyPolicy(model, actions_number, min_epsilon=min_epsilon)
+    agent = DuelDQNAgent(env_prep, model, None, policy_play, None, None)
+    steps, reward = agent.play()
 
-name_plot_eps_rewards = "Training Steps Rewards"
-plot_steps_rewards.savefig(name_plot_eps_rewards)
-"""
+    ext = "png"
+    name_plot_eps_steps = "{} Play Episodes Steps.{}".format(game_name, ext)
+    name_plot_eps_rewards = "{} Play Episodes Rewards.{}".format(game_name, ext)
+    file_plot_1 = Path(name_plot_eps_steps)
+    file_plot_2 = Path(name_plot_eps_rewards)
+    i = 1
+    while file_plot_1.exists():
+        file_plot_1 = Path(name_plot_eps_steps)
+        name_plot_eps_steps = "{} Play Episodes Steps_{}.{}".format(game_name, i, ext)
+        name_plot_eps_rewards = "{} Play Episodes Rewards_{}.{}".format(game_name, i, ext)
+        i += 1
+    plot_result("Episode", "Steps", range(1, episodes+1), steps, name_plot_eps_steps)
+    plot_result("Episode", "Steps", range(1, episodes+1), reward, name_plot_eps_rewards)

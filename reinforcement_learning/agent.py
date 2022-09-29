@@ -22,12 +22,13 @@ class DuelDQNAgent:
     # If training its true add the experience in the replay buffer
     def play_one_step(self, state):
         action = self.policy.get_action(state)
-        #print("action {}".format(action))
+        # print("action {}".format(action))
         next_state, reward, done, info = self.env.step(action)
         return action, reward, next_state, done, info
 
     # Play
-    def play(self, state):
+    def play(self):
+        state = self.env.reset()
         steps = 0
         cumulative_reward = 0
         while True:
@@ -37,6 +38,7 @@ class DuelDQNAgent:
                 print("DONE number of steps: {} reward:  {}".format(steps, cumulative_reward))
                 break
             steps += 1
+            state = next_state
         return steps, cumulative_reward
 
     ## Double DQN Training
@@ -72,8 +74,8 @@ class DuelDQNAgent:
 
         action_space = self.env.action_space.n
         # Predict using the primary network
-        next_q_values = self.model_primary(next_states)
-        next_q_values_target = self.model_target(next_states)
+        next_q_values = self.model_primary.predict(next_states)
+        next_q_values_target = self.model_target.predict(next_states)
 
         # Select the action that lead us to the higher next Q value
         best_actions = np.argmax(next_q_values, axis=1)
@@ -104,14 +106,13 @@ class DuelDQNAgent:
     # We use the training step just when there is enough samples on the replay buffer
     def double_dqn_training(self, batch_size, loss_function, discount_factor, freq_replacement, clipping_value,
                             beta_min, beta_max, max_episodes=600):
-        rewards = [0]
-        steps = [0]
+        rewards = []
+        steps = []
 
-        for episode in range(1, max_episodes):
-            obs = self.env.reset()
+        for episode in range(1, max_episodes+1):
+            state = self.env.reset()
             cumulative_reward = 0
             step = 0
-            state = obs
             beta = max(beta_min, (beta_max * episode / max_episodes))
 
             while True:
