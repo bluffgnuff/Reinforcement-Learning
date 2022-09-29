@@ -22,7 +22,7 @@ class DuelDQNAgent:
     # If training its true add the experience in the replay buffer
     def play_one_step(self, state):
         action = self.policy.get_action(state)
-        print("action {}".format(action))
+        #print("action {}".format(action))
         next_state, reward, done, info = self.env.step(action)
         return action, reward, next_state, done, info
 

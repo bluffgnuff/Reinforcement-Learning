@@ -5,7 +5,7 @@ from reinforcement_learning.policy import EpsilonGreedyPolicy
 from reinforcement_learning.replay_buffer import PrioritizedExperienceReplayRankBased
 
 # Searching for available environments
-game_name = "BeamRider"
+game_name = "Phoenix"
 all_envs = envs.registry.values()
 env_ids = [env_spec.id for env_spec in all_envs]
 
@@ -21,11 +21,11 @@ matplotlib.use('Agg')
 from gym.wrappers import AtariPreprocessing
 
 # Make Parameters:
-game_name = "BeamRider"
+game_name = "Phoenix"
 game_mode = "NoFrameskip"  # [Deterministic | NoFrameskip | ram | ramDeterministic | ramNoFrameskip ]
 game_version = "v4"  # [v0 | v4 | v5]
 env_name = '{}{}-{}'.format(game_name, game_mode, game_version)
-env_render_mode = 'human'  # [human | rgb_array]
+env_render_mode = 'rgb_array'  # [human | rgb_array]
 env_frame_skip = 4
 
 env = envs.make(env_name, render_mode=env_render_mode)
@@ -79,14 +79,14 @@ input_shape = env_prep.observation_space.shape
 actions_number = env_prep.action_space.n
 
 # Model persistent file
-primary_model_file_name = "dueling_primary_model.h5"
+primary_model_file_name = "Phoenix_dueling_primary_model.h5"
 
 # Training Parameters
 loss_function = losses.mean_squared_error
 batch_size = 32
 discount_factor = 0.95
 learning_rate = 6.25e-5
-episodes = 10
+episodes = 50
 clipping_value = 10
 
 # Dual DQN Training
@@ -136,11 +136,26 @@ steps, rewards = agent.double_dqn_training(batch_size, loss_function, discount_f
 
 env_prep.close()
 model.save(primary_model_file_name)
-name_plot_eps_steps = "Training Episodes Steps"
-name_plot_eps_rewards = "Training Episodes Rewards"
+name_plot_eps_steps = "Phoenix Training Episodes Steps"
+name_plot_eps_rewards = "Phoenix Training Episodes Rewards"
+i = 2
+file_plot_1 = Path(name_plot_eps_steps)
+file_plot_2 = Path(name_plot_eps_rewards)
+
+while file_plot_1.exists():
+    name_plot_eps_steps = "{} Training Episodes Steps_{}".format(game_name, i)
+    name_plot_eps_rewards = "{} Training Episodes Rewards_{}".format(game_name, i)
+    i += 1
 
 plot_result("Episode", "Steps", range(0, episodes), steps, name_plot_eps_steps)
 plot_result("Episode", "Steps", range(0, episodes), rewards, name_plot_eps_rewards)
+
+# TODO add steps rewards to csv
+import pandas as pd
+csv_name = "{}.csv".format(game_name)
+dict = {'steps': steps, 'rewards': rewards}
+df = pd.DataFrame(dict)
+df.to_csv(csv_name, mode='a', header=False)
 
 """
 # Play
