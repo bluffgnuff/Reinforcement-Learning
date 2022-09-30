@@ -138,7 +138,7 @@ if training:
     optimizer = optimizers.Adam(learning_rate=learning_rate)
     policy_training = EpsilonGreedyPolicy(model, actions_number, episodes=episodes, min_epsilon=min_epsilon)
     replay_buffer = PrioritizedExperienceReplayRankBased(buffer_size, step_to_heapify, alpha)
-    agent = DuelDQNAgent(env_prep, model, model_target, policy_training, optimizer, replay_buffer)
+    agent = DuelDQNAgent(env_prep, model, policy_training, model_target, optimizer, replay_buffer)
     steps, rewards = agent.double_dqn_training(batch_size, loss_function, discount_factor, freq_replacement,
                                                clipping_value, beta_min, beta_max, episodes)
     env_prep.close()
@@ -169,7 +169,7 @@ if training:
 play = False
 if play:
     policy_play = EpsilonGreedyPolicy(model, actions_number, min_epsilon=min_epsilon)
-    agent = DuelDQNAgent(env_prep, model, None, policy_play, None, None)
+    agent = DuelDQNAgent(env_prep, model, policy_play)
     steps, reward = agent.play()
 
     ext = "png"

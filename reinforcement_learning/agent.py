@@ -7,7 +7,7 @@ import numpy as np
 class DuelDQNAgent:
 
     ## We keep the creation model outside the agent to ensure a fine-grained control on it
-    def __init__(self, env, model, model_target, policy, optimizer, replay_buffer):
+    def __init__(self, env, model,  policy, model_target=None, optimizer=None, replay_buffer=None):
         self.env = env
         self.model_primary = model
         self.model_target = model_target
