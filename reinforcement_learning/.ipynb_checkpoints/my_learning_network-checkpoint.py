@@ -149,7 +149,7 @@ if training:
     name_plot_eps_rewards = "{} Training Episodes Rewards.{}".format(game_name, ext)
     file_plot_1 = Path(name_plot_eps_steps)
     file_plot_2 = Path(name_plot_eps_rewards)
-    i = 1
+    i = 2
     while file_plot_1.exists():
         file_plot_1 = Path(name_plot_eps_steps)
         name_plot_eps_steps = "{} Training Episodes Steps_{}.{}".format(game_name, i, ext)
@@ -166,6 +166,7 @@ if training:
     df.to_csv(csv_name, mode='a', header=False)
 
 
+# Play
 play = False
 if play:
     policy_play = EpsilonGreedyPolicy(model, actions_number, min_epsilon=min_epsilon)
@@ -173,11 +174,15 @@ if play:
     steps, reward = agent.play()
 
     ext = "png"
-    name_plot_steps_rewards = "{} Play Steps Rewards.{}".format(game_name, ext)
-    file_plot_1 = Path(name_plot_steps_rewards)
+    name_plot_eps_steps = "{} Play Episodes Steps.{}".format(game_name, ext)
+    name_plot_eps_rewards = "{} Play Episodes Rewards.{}".format(game_name, ext)
+    file_plot_1 = Path(name_plot_eps_steps)
+    file_plot_2 = Path(name_plot_eps_rewards)
     i = 1
     while file_plot_1.exists():
-        file_plot_1 = Path(name_plot_steps_rewards)
-        name_plot_steps_rewards = "{} Play Steps Rewards_{}.{}".format(game_name, i, ext)
+        file_plot_1 = Path(name_plot_eps_steps)
+        name_plot_eps_steps = "{} Play Episodes Steps_{}.{}".format(game_name, i, ext)
+        name_plot_eps_rewards = "{} Play Episodes Rewards_{}.{}".format(game_name, i, ext)
         i += 1
-    plot_result("Episode", "Steps", steps, reward, name_plot_steps_rewards)
+    plot_result("Episode", "Steps", range(1, episodes+1), steps, name_plot_eps_steps)
+    plot_result("Episode", "Steps", range(1, episodes+1), reward, name_plot_eps_rewards)
