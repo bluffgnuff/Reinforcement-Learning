@@ -103,7 +103,7 @@ beta_max = 1
 beta_min = 0.5
 
 # Policy parameters
-min_epsilon = 0.5
+min_epsilon = 0.001
 
 
 # Plot result
