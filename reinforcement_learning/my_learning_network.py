@@ -1,6 +1,5 @@
 from gym import envs
 
-# TODO change position in Jupyter
 from reinforcement_learning.agent import DuelDQNAgent
 from reinforcement_learning.policy import EpsilonGreedyPolicy
 from reinforcement_learning.replay_buffer import PrioritizedExperienceReplayRankBased
@@ -15,11 +14,6 @@ for id in sorted(env_ids):
         print(id)
 
 # Environment Configuration
-# TODO change position in Jupyter
-import matplotlib
-import matplotlib.pyplot as plt
-matplotlib.use('Agg')
-
 # from gym import envs
 from gym.wrappers import AtariPreprocessing
 
@@ -105,8 +99,12 @@ beta_min = 0.5
 # Policy parameters
 min_epsilon = 0.001
 
-
 # Plot result
+import matplotlib
+import matplotlib.pyplot as plt
+matplotlib.use('Agg')
+
+
 def plot_result(x_label, y_label, x, y, name):
     plt.ylabel(x_label)
     plt.xlabel(y_label)
@@ -151,10 +149,10 @@ if training:
     file_plot_2 = Path(name_plot_eps_rewards)
     i = 1
     while file_plot_1.exists():
-        file_plot_1 = Path(name_plot_eps_steps)
+        i += 1
         name_plot_eps_steps = "{} Training Episodes Steps_{}.{}".format(game_name, i, ext)
         name_plot_eps_rewards = "{} Training Episodes Rewards_{}.{}".format(game_name, i, ext)
-        i += 1
+        file_plot_1 = Path(name_plot_eps_steps)
 
     plot_result("Episode", "Steps", range(1, episodes+1), steps, name_plot_eps_steps)
     plot_result("Episode", "Steps", range(1, episodes+1), rewards, name_plot_eps_rewards)
@@ -177,7 +175,8 @@ if play:
     file_plot_1 = Path(name_plot_steps_rewards)
     i = 1
     while file_plot_1.exists():
-        file_plot_1 = Path(name_plot_steps_rewards)
-        name_plot_steps_rewards = "{} Play Steps Rewards_{}.{}".format(game_name, i, ext)
         i += 1
+        name_plot_steps_rewards = "{} Play Steps Rewards_{}.{}".format(game_name, i, ext)
+        file_plot_1 = Path(name_plot_steps_rewards)
+
     plot_result("Episode", "Steps", steps, reward, name_plot_steps_rewards)
