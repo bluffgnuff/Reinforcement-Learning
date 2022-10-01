@@ -155,7 +155,7 @@ if training:
         file_plot_1 = Path(name_plot_eps_steps)
 
     plot_result("Episode", "Steps", range(1, episodes+1), steps, name_plot_eps_steps)
-    plot_result("Episode", "Steps", range(1, episodes+1), rewards, name_plot_eps_rewards)
+    plot_result("Episode", "Rewards", range(1, episodes+1), rewards, name_plot_eps_rewards)
 
     import pandas as pd
     csv_name = "{}.csv".format(game_name)
@@ -169,14 +169,3 @@ if play:
     policy_play = EpsilonGreedyPolicy(model, actions_number, min_epsilon=min_epsilon)
     agent = DuelDQNAgent(env_prep, model, policy_play)
     steps, reward = agent.play()
-
-    ext = "png"
-    name_plot_steps_rewards = "{} Play Steps Rewards.{}".format(game_name, ext)
-    file_plot_1 = Path(name_plot_steps_rewards)
-    i = 1
-    while file_plot_1.exists():
-        i += 1
-        name_plot_steps_rewards = "{} Play Steps Rewards_{}.{}".format(game_name, i, ext)
-        file_plot_1 = Path(name_plot_steps_rewards)
-
-    plot_result("Episode", "Steps", steps, reward, name_plot_steps_rewards)
