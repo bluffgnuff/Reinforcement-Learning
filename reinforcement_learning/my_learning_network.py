@@ -97,7 +97,7 @@ beta_max = 1
 beta_min = 0.5
 
 # Policy parameters
-min_epsilon = 0.001
+min_epsilon = 0.01
 
 # Plot result
 import matplotlib
@@ -115,6 +115,7 @@ def plot_result(x_label, y_label, x, y, name):
 
 # Run Training
 from pathlib import Path
+import pandas as pd
 
 # Model creation
 file_primary = Path(primary_model_file_name)
@@ -131,37 +132,38 @@ print(model.summary())
 # Setting the optimizer
 training = True
 if training:
-    model_target = create_dueling_model(input_shape, actions_number)
-    model_target.set_weights(model.get_weights())
-    optimizer = optimizers.Adam(learning_rate=learning_rate)
-    policy_training = EpsilonGreedyPolicy(model, actions_number, episodes=episodes, min_epsilon=min_epsilon)
-    replay_buffer = PrioritizedExperienceReplayRankBased(buffer_size, step_to_heapify, alpha)
-    agent = DuelDQNAgent(env_prep, model, policy_training, model_target, optimizer, replay_buffer)
-    steps, rewards = agent.double_dqn_training(batch_size, loss_function, discount_factor, freq_replacement,
-                                               clipping_value, beta_min, beta_max, episodes)
-    env_prep.close()
-    model.save(primary_model_file_name)
+    try:
+        model_target = create_dueling_model(input_shape, actions_number)
+        model_target.set_weights(model.get_weights())
+        optimizer = optimizers.Adam(learning_rate=learning_rate)
+        policy_training = EpsilonGreedyPolicy(model, actions_number, episodes=episodes, min_epsilon=min_epsilon)
+        replay_buffer = PrioritizedExperienceReplayRankBased(buffer_size, step_to_heapify, alpha)
+        agent = DuelDQNAgent(env_prep, model, policy_training, model_target, optimizer, replay_buffer)
+        steps, rewards = agent.double_dqn_training(batch_size, loss_function, discount_factor, freq_replacement,
+                                                   clipping_value, beta_min, beta_max, episodes)
 
-    ext = "png"
-    name_plot_eps_steps = "{} Training Episodes Steps.{}".format(game_name, ext)
-    name_plot_eps_rewards = "{} Training Episodes Rewards.{}".format(game_name, ext)
-    file_plot_1 = Path(name_plot_eps_steps)
-    file_plot_2 = Path(name_plot_eps_rewards)
-    i = 1
-    while file_plot_1.exists():
-        i += 1
-        name_plot_eps_steps = "{} Training Episodes Steps_{}.{}".format(game_name, i, ext)
-        name_plot_eps_rewards = "{} Training Episodes Rewards_{}.{}".format(game_name, i, ext)
+        ext = "png"
+        name_plot_eps_steps = "{} Training Episodes Steps.{}".format(game_name, ext)
+        name_plot_eps_rewards = "{} Training Episodes Rewards.{}".format(game_name, ext)
         file_plot_1 = Path(name_plot_eps_steps)
+        file_plot_2 = Path(name_plot_eps_rewards)
+        i = 1
+        while file_plot_1.exists():
+            i += 1
+            name_plot_eps_steps = "{} Training Episodes Steps_{}.{}".format(game_name, i, ext)
+            name_plot_eps_rewards = "{} Training Episodes Rewards_{}.{}".format(game_name, i, ext)
+            file_plot_1 = Path(name_plot_eps_steps)
 
-    plot_result("Episode", "Steps", range(1, episodes+1), steps, name_plot_eps_steps)
-    plot_result("Episode", "Rewards", range(1, episodes+1), rewards, name_plot_eps_rewards)
+        plot_result("Episode", "Steps", range(1, episodes+1), steps, name_plot_eps_steps)
+        plot_result("Episode", "Rewards", range(1, episodes+1), rewards, name_plot_eps_rewards)
 
-    import pandas as pd
-    csv_name = "{}.csv".format(game_name)
-    dict = {'steps': steps, 'rewards': rewards}
-    df = pd.DataFrame(dict)
-    df.to_csv(csv_name, mode='a', header=False)
+    finally:
+        model.save(primary_model_file_name)
+
+        csv_name = "{}.csv".format(game_name)
+        dict = {'steps': steps, 'rewards': rewards}
+        df = pd.DataFrame(dict)
+        df.to_csv(csv_name, mode='a', header=False)
 
 
 play = False
@@ -169,3 +171,16 @@ if play:
     policy_play = EpsilonGreedyPolicy(model, actions_number, min_epsilon=min_epsilon)
     agent = DuelDQNAgent(env_prep, model, policy_play)
     steps, reward = agent.play()
+
+    ext = "png"
+    name_plot_steps_rewards = "{} Play Steps Rewards.{}".format(game_name, ext)
+    file_plot_1 = Path(name_plot_steps_rewards)
+    i = 1
+    while file_plot_1.exists():
+        i += 1
+        name_plot_steps_rewards = "{} Play Steps Rewards_{}.{}".format(game_name, i, ext)
+        file_plot_1 = Path(name_plot_steps_rewards)
+
+    plot_result("Steps", "Rewards", steps, reward, name_plot_steps_rewards)
+
+env_prep.close()

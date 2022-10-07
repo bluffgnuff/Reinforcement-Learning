@@ -1,4 +1,4 @@
-import math
+import math as mt
 
 import tensorflow as tf
 import numpy as np
@@ -54,14 +54,14 @@ class DuelDQNAgent:
             all_q_values = self.model_primary(states)
             q_values = tf.reduce_sum(all_q_values * mask, axis=1, keepdims=True)
             loss_value = loss_function(best_on_target_q_values, q_values)
-            loss_corrected = tf.multiply(loss_value, importance_sampling_weights, step_size)
+            loss_corrected = loss_value * importance_sampling_weights * step_size
         grads = tape.gradient(loss_corrected, self.model_primary.trainable_variables)
         return grads, loss_value
 
     @staticmethod
     def rescale_grad(gradients, rescale_value, index):
         tensor_to_scale = gradients[index]
-        rescaled_tensor = tf.multiply(tensor_to_scale, rescale_value)
+        rescaled_tensor = tensor_to_scale * rescale_value
         gradients[index] = rescaled_tensor
         return gradients
 
@@ -74,8 +74,8 @@ class DuelDQNAgent:
 
         action_space = self.env.action_space.n
         # Predict using the primary network
-        next_q_values = self.model_primary.predict(next_states)
-        next_q_values_target = self.model_target.predict(next_states)
+        next_q_values = self.model_primary(next_states)
+        next_q_values_target = self.model_target(next_states)
 
         # Select the action that lead us to the higher next Q value
         best_actions = np.argmax(next_q_values, axis=1)
@@ -93,7 +93,7 @@ class DuelDQNAgent:
             self.replay_buffer.update_td_error(index, td_error)
 
         # We rescale the last convolutional layer to 1/sqrt(2) to balance the double backpropagation
-        rescale_value = (1 / math.sqrt(2))
+        rescale_value = (1 / mt.sqrt(2))
         # The index of the last sequential layer
         index_gradient_to_rescale = 4
         rescaled_grads = self.rescale_grad(weighted_gradient, rescale_value, index_gradient_to_rescale)
