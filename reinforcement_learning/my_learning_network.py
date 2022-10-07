@@ -161,9 +161,10 @@ if training:
         model.save(primary_model_file_name)
 
         csv_name = "{}.csv".format(game_name)
-        dict = {'steps': steps, 'rewards': rewards}
-        df = pd.DataFrame(dict)
-        df.to_csv(csv_name, mode='a', header=False)
+        if not steps is None and not rewards is None:
+            dict = {'steps': steps, 'rewards': rewards}
+            df = pd.DataFrame(dict)
+            df.to_csv(csv_name, mode='a', header=False)
 
 
 play = False
