@@ -173,15 +173,4 @@ if play:
     agent = DuelDQNAgent(env_prep, model, policy_play)
     steps, reward = agent.play()
 
-    ext = "png"
-    name_plot_steps_rewards = "{} Play Steps Rewards.{}".format(game_name, ext)
-    file_plot_1 = Path(name_plot_steps_rewards)
-    i = 1
-    while file_plot_1.exists():
-        i += 1
-        name_plot_steps_rewards = "{} Play Steps Rewards_{}.{}".format(game_name, i, ext)
-        file_plot_1 = Path(name_plot_steps_rewards)
-
-    plot_result("Steps", "Rewards", steps, reward, name_plot_steps_rewards)
-
 env_prep.close()
