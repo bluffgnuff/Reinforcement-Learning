@@ -22,7 +22,7 @@ game_name = "Phoenix"
 game_mode = "NoFrameskip"  # [Deterministic | NoFrameskip | ram | ramDeterministic | ramNoFrameskip ]
 game_version = "v4"  # [v0 | v4 | v5]
 env_name = '{}{}-{}'.format(game_name, game_mode, game_version)
-env_render_mode = 'rgb_array'  # [human | rgb_array]
+env_render_mode = 'human'  # [human | rgb_array]
 env_frame_skip = 4
 
 env = envs.make(env_name, render_mode=env_render_mode)
@@ -32,7 +32,7 @@ print("Environment action space: ", env.action_space)
 print("Action list: ", env.unwrapped.get_action_meanings())
 
 
-env_prep = AtariPreprocessing(env, frame_skip=env_frame_skip, grayscale_obs=True, noop_max=30)
+env_prep = AtariPreprocessing(env, frame_skip=env_frame_skip, grayscale_obs=True, terminal_on_life_loss=True, noop_max=30)
 env_prep.reset()
 print("Environment preprocessed observation: ", env_prep.observation_space.shape)
 print("Environment preprocessed action space: ", env_prep.action_space)
@@ -83,15 +83,16 @@ loss_function = losses.mean_squared_error
 batch_size = 32
 discount_factor = 0.95
 learning_rate = 6.25e-5
-episodes = 50
+episodes = 500
 clipping_value = 10
+training_freq = 4
 
 # Dual DQN Training
-freq_replacement = 50
+freq_replacement = 500
 
 # Replay buffer parameters
-buffer_size = 2000
-step_to_heapify = 50
+buffer_size = 10000
+step_to_heapify = 200
 alpha = 0.5
 beta_max = 1
 beta_min = 0.5
@@ -131,6 +132,7 @@ print(model.summary())
 
 # Setting the optimizer
 training = True
+play = False
 if training:
     try:
         model_target = create_dueling_model(input_shape, actions_number)
@@ -140,7 +142,7 @@ if training:
         replay_buffer = PrioritizedExperienceReplayRankBased(buffer_size, step_to_heapify, alpha)
         agent = DuelDQNAgent(env_prep, model, policy_training, model_target, optimizer, replay_buffer)
         steps, rewards = agent.double_dqn_training(batch_size, loss_function, discount_factor, freq_replacement,
-                                                   clipping_value, beta_min, beta_max, episodes)
+                                                   training_freq, clipping_value, beta_min, beta_max, episodes)
 
         ext = "png"
         name_plot_eps_steps = "{} Training Episodes Steps.{}".format(game_name, ext)
@@ -166,8 +168,6 @@ if training:
             df = pd.DataFrame(dict)
             df.to_csv(csv_name, mode='a', header=False)
 
-
-play = False
 if play:
     policy_play = EpsilonGreedyPolicy(model, actions_number, min_epsilon=min_epsilon)
     agent = DuelDQNAgent(env_prep, model, policy_play)

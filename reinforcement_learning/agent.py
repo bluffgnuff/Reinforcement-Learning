@@ -104,8 +104,8 @@ class DuelDQNAgent:
         self.optimizer.apply_gradients(zip(clipped_gradients, self.model_primary.trainable_variables))
 
     # We use the training step just when there is enough samples on the replay buffer
-    def double_dqn_training(self, batch_size, loss_function, discount_factor, freq_replacement, clipping_value,
-                            beta_min, beta_max, max_episodes=600):
+    def double_dqn_training(self, batch_size, loss_function, discount_factor, freq_replacement, training_freq,
+                            clipping_value, beta_min, beta_max, max_episodes=600):
         rewards = []
         steps = []
 
@@ -126,7 +126,7 @@ class DuelDQNAgent:
                     rewards.append(cumulative_reward)
                     steps.append(step)
                     break
-                if len(self.replay_buffer.replay_buffer) > batch_size:
+                if len(self.replay_buffer.replay_buffer) > batch_size and step % training_freq == 0:
                     self.double_dqn_training_step(batch_size, loss_function, discount_factor, clipping_value, beta)
                 if step == freq_replacement:
                     self.model_target.set_weights(self.model_primary.get_weights())
