@@ -173,8 +173,8 @@ def play():
     steps, reward = agent.play()
 
 
-let_training = False
-let_play = True
+let_training = True
+let_play = False
 
 if let_training:
     training()
