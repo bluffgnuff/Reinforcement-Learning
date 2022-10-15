@@ -147,7 +147,6 @@ def training():
         name_plot_eps_steps = "{} Training Episodes Steps.{}".format(game_name, ext)
         name_plot_eps_rewards = "{} Training Episodes Rewards.{}".format(game_name, ext)
         file_plot_1 = Path(name_plot_eps_steps)
-        file_plot_2 = Path(name_plot_eps_rewards)
         i = 1
         while file_plot_1.exists():
             i += 1
@@ -181,7 +180,7 @@ if let_training:
     training()
 
 if let_play:
-    env_prep.terminal_on_life_loss = False
+    env_prep.terminal_on_life_loss = True
     play()
 
 env_prep.close()
