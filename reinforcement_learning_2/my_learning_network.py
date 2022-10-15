@@ -173,14 +173,14 @@ def play():
     steps, reward = agent.play()
 
 
-let_training = True
-let_play = False
+let_training = False
+let_play = True
 
 if let_training:
     training()
 
 if let_play:
-    env_prep.terminal_on_life_loss = True
+    env_prep.terminal_on_life_loss = False
     play()
 
 env_prep.close()
