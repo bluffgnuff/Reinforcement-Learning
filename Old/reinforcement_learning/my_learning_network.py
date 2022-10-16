@@ -1,9 +1,8 @@
-import gym
 from gym import envs
 
-from agent import DuelDQNAgent
-from policy import EpsilonGreedyPolicy
-from replay_buffer import PrioritizedExperienceReplayRankBased
+from reinforcement_learning.agent import DuelDQNAgent
+from reinforcement_learning.policy import EpsilonGreedyPolicy
+from reinforcement_learning.replay_buffer import PrioritizedExperienceReplayRankBased
 
 # Searching for available environments
 game_name = "Phoenix"
@@ -17,7 +16,6 @@ for id in sorted(env_ids):
 # Environment Configuration
 # from gym import envs
 from gym.wrappers import AtariPreprocessing
-from gym.wrappers import FrameStack
 
 # Make Parameters:
 game_name = "Phoenix"
@@ -27,18 +25,17 @@ env_name = '{}{}-{}'.format(game_name, game_mode, game_version)
 env_render_mode = 'human'  # [human | rgb_array]
 env_frame_skip = 4
 
-env = gym.make(env_name, render_mode=env_render_mode)
+env = envs.make(env_name, render_mode=env_render_mode)
 
 print("Environment observation: ", env.observation_space)
 print("Environment action space: ", env.action_space)
 print("Action list: ", env.unwrapped.get_action_meanings())
 
-env = AtariPreprocessing(env, frame_skip=env_frame_skip, grayscale_obs=True, terminal_on_life_loss=True,
-                         noop_max=30)
-env = FrameStack(env, 4)
-env.reset()
-print("Environment preprocessed observation: ", env.observation_space.shape)
-print("Environment preprocessed action space: ", env.action_space)
+env_prep = AtariPreprocessing(env, frame_skip=env_frame_skip, grayscale_obs=True, terminal_on_life_loss=True,
+                              noop_max=30)
+env_prep.reset()
+print("Environment preprocessed observation: ", env_prep.observation_space.shape)
+print("Environment preprocessed action space: ", env_prep.action_space)
 
 # Neural Network Creation
 from tensorflow import math
@@ -75,8 +72,8 @@ from tensorflow.keras import optimizers
 from tensorflow.keras.models import load_model
 
 # Environment info
-input_shape = env.observation_space.shape
-actions_number = env.action_space.n
+input_shape = env_prep.observation_space.shape
+actions_number = env_prep.action_space.n
 
 # Model persistent file
 primary_model_file_name = "{}_dueling_model".format(game_name)
@@ -142,7 +139,7 @@ def training():
         optimizer = optimizers.Adam(learning_rate=learning_rate)
         policy_training = EpsilonGreedyPolicy(model, actions_number, episodes=episodes, min_epsilon=min_epsilon)
         replay_buffer = PrioritizedExperienceReplayRankBased(buffer_size, step_to_heapify, alpha)
-        agent = DuelDQNAgent(env, model, policy_training, model_target, optimizer, replay_buffer)
+        agent = DuelDQNAgent(env_prep, model, policy_training, model_target, optimizer, replay_buffer)
         steps, rewards = agent.double_dqn_training(batch_size, loss_function, discount_factor, freq_replacement,
                                                    training_freq, clipping_value, beta_min, beta_max, episodes)
 
@@ -150,6 +147,7 @@ def training():
         name_plot_eps_steps = "{} Training Episodes Steps.{}".format(game_name, ext)
         name_plot_eps_rewards = "{} Training Episodes Rewards.{}".format(game_name, ext)
         file_plot_1 = Path(name_plot_eps_steps)
+        file_plot_2 = Path(name_plot_eps_rewards)
         i = 1
         while file_plot_1.exists():
             i += 1
@@ -164,7 +162,7 @@ def training():
         model.save(primary_model_file_name)
 
         csv_name = "{}.csv".format(game_name)
-        if steps is not None and rewards is not None:
+        if not steps is None and not rewards is None:
             dict = {'steps': steps, 'rewards': rewards}
             df = pd.DataFrame(dict)
             df.to_csv(csv_name, mode='a', header=False)
@@ -172,7 +170,7 @@ def training():
 
 def play():
     policy_play = EpsilonGreedyPolicy(model, actions_number, min_epsilon=min_epsilon)
-    agent = DuelDQNAgent(env, model, policy_play)
+    agent = DuelDQNAgent(env_prep, model, policy_play)
     steps, reward = agent.play()
 
 
@@ -183,7 +181,7 @@ if let_training:
     training()
 
 if let_play:
-    env.terminal_on_life_loss = False
+    env_prep.terminal_on_life_loss = False
     play()
 
-env.close()
+env_prep.close()

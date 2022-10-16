@@ -1,11 +1,19 @@
 import numpy as np
-import tensorflow as tf
 
 
-class EpsilonGreedyPolicy:
+class Policy:
+    def __init__(self, model):
+        self.model = model
+        pass
+
+    def get_action(self, state):
+        pass
+
+
+class EpsilonGreedyPolicy(Policy):
 
     def __init__(self, model, action_space_size, episodes=1, min_epsilon=0):
-        self.model = model
+        super().__init__(model)
         self.action_space_size = action_space_size
         self.min_epsilon = min_epsilon
         self.episode = 1
@@ -19,13 +27,10 @@ class EpsilonGreedyPolicy:
             action = np.random.randint(self.action_space_size)
             return action
         else:
-            # Predict action Q-values
-            # From environment state
-            state_tensor = tf.convert_to_tensor(state)
-            state_tensor = tf.expand_dims(state_tensor, 0)
-            action_probs = self.model(state_tensor, training=False)
-            # Take best action
-            action = tf.argmax(action_probs[0]).numpy()
+            state = state[np.newaxis]
+            q_values = self.model(state)
+            # q_values = self.model(state[np.newaxis])
+            action = np.argmax(q_values[0])
             return action
 
     def next_episode(self):

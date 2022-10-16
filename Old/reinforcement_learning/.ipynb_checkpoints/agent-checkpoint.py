@@ -1,4 +1,4 @@
-import math as mt
+import math
 
 import tensorflow as tf
 import numpy as np
@@ -6,8 +6,8 @@ import numpy as np
 
 class DuelDQNAgent:
 
-    # We keep the creation model outside the agent to ensure a fine-grained control on it
-    def __init__(self, env, model, policy, model_target=None, optimizer=None, replay_buffer=None):
+    ## We keep the creation model outside the agent to ensure a fine-grained control on it
+    def __init__(self, env, model, model_target, policy, optimizer, replay_buffer):
         self.env = env
         self.model_primary = model
         self.model_target = model_target
@@ -41,7 +41,7 @@ class DuelDQNAgent:
             state = next_state
         return steps, cumulative_reward
 
-    # Double DQN Training
+    ## Double DQN Training
     @staticmethod
     def gradient_clipping(gradients, clipping_value):
         clipped_gradients = [(tf.clip_by_norm(grad, clipping_value)) for grad in gradients]
@@ -54,14 +54,14 @@ class DuelDQNAgent:
             all_q_values = self.model_primary(states)
             q_values = tf.reduce_sum(all_q_values * mask, axis=1, keepdims=True)
             loss_value = loss_function(best_on_target_q_values, q_values)
-            loss_corrected = loss_value * importance_sampling_weights * step_size
+            loss_corrected = tf.multiply(loss_value, importance_sampling_weights, step_size)
         grads = tape.gradient(loss_corrected, self.model_primary.trainable_variables)
         return grads, loss_value
 
     @staticmethod
     def rescale_grad(gradients, rescale_value, index):
         tensor_to_scale = gradients[index]
-        rescaled_tensor = tensor_to_scale * rescale_value
+        rescaled_tensor = tf.multiply(tensor_to_scale, rescale_value)
         gradients[index] = rescaled_tensor
         return gradients
 
@@ -83,7 +83,6 @@ class DuelDQNAgent:
 
         next_q_value_target = tf.reduce_sum(next_q_values_target * best_action_mask, axis=1)
         best_on_target_q_values = (rewards + (1-dones)*discount_factor*next_q_value_target)
-        best_on_target_q_values = best_on_target_q_values * (1 - dones) - dones
 
         mask = tf.one_hot(actions, action_space)
         importance_sampling_weights = tf.convert_to_tensor(importance_sampling_weights, tf.float32)
@@ -94,7 +93,7 @@ class DuelDQNAgent:
             self.replay_buffer.update_td_error(index, td_error)
 
         # We rescale the last convolutional layer to 1/sqrt(2) to balance the double backpropagation
-        rescale_value = (1 / mt.sqrt(2))
+        rescale_value = (1 / math.sqrt(2))
         # The index of the last sequential layer
         index_gradient_to_rescale = 4
         rescaled_grads = self.rescale_grad(weighted_gradient, rescale_value, index_gradient_to_rescale)
@@ -105,8 +104,8 @@ class DuelDQNAgent:
         self.optimizer.apply_gradients(zip(clipped_gradients, self.model_primary.trainable_variables))
 
     # We use the training step just when there is enough samples on the replay buffer
-    def double_dqn_training(self, batch_size, loss_function, discount_factor, freq_replacement, training_freq,
-                            clipping_value, beta_min, beta_max, max_episodes=600):
+    def double_dqn_training(self, batch_size, loss_function, discount_factor, freq_replacement, clipping_value,
+                            beta_min, beta_max, max_episodes=600):
         rewards = []
         steps = []
 
@@ -127,9 +126,9 @@ class DuelDQNAgent:
                     rewards.append(cumulative_reward)
                     steps.append(step)
                     break
-                if len(self.replay_buffer.replay_buffer) > batch_size and (step % training_freq) == 0:
+                if len(self.replay_buffer.replay_buffer) > batch_size:
                     self.double_dqn_training_step(batch_size, loss_function, discount_factor, clipping_value, beta)
-                if (step % freq_replacement) == 0:
+                if step == freq_replacement:
                     self.model_target.set_weights(self.model_primary.get_weights())
                 state = next_state
                 step = step + 1

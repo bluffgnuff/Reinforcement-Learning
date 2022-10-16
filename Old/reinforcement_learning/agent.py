@@ -6,7 +6,7 @@ import numpy as np
 
 class DuelDQNAgent:
 
-    # We keep the creation model outside the agent to ensure a fine-grained control on it
+    ## We keep the creation model outside the agent to ensure a fine-grained control on it
     def __init__(self, env, model, policy, model_target=None, optimizer=None, replay_buffer=None):
         self.env = env
         self.model_primary = model
@@ -41,7 +41,7 @@ class DuelDQNAgent:
             state = next_state
         return steps, cumulative_reward
 
-    # Double DQN Training
+    ## Double DQN Training
     @staticmethod
     def gradient_clipping(gradients, clipping_value):
         clipped_gradients = [(tf.clip_by_norm(grad, clipping_value)) for grad in gradients]
@@ -74,8 +74,8 @@ class DuelDQNAgent:
 
         action_space = self.env.action_space.n
         # Predict using the primary network
-        next_q_values = self.model_primary.predict(next_states)
-        next_q_values_target = self.model_target.predict(next_states)
+        next_q_values = self.model_primary(next_states)
+        next_q_values_target = self.model_target(next_states)
 
         # Select the action that lead us to the higher next Q value
         best_actions = np.argmax(next_q_values, axis=1)
@@ -83,7 +83,6 @@ class DuelDQNAgent:
 
         next_q_value_target = tf.reduce_sum(next_q_values_target * best_action_mask, axis=1)
         best_on_target_q_values = (rewards + (1-dones)*discount_factor*next_q_value_target)
-        best_on_target_q_values = best_on_target_q_values * (1 - dones) - dones
 
         mask = tf.one_hot(actions, action_space)
         importance_sampling_weights = tf.convert_to_tensor(importance_sampling_weights, tf.float32)

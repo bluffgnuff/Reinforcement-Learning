@@ -3,8 +3,17 @@ import numpy as np
 import scipy.stats as stats
 
 
+class ReplayBuffer:
+    def __init__(self, max_buffer_size):
+        self.max_buffer_size = max_buffer_size
+        pass
+
+    def sample_experience(self, batch_size):
+        pass
+
+
 # We set a time to haepify to sort the buffer every K time step.
-class PrioritizedExperienceReplayRankBased:
+class PrioritizedExperienceReplayRankBased(ReplayBuffer):
     """
     contains the tuples (TD_error, experience)
     replay_buffer --- it's the max size of the buffer, over which before add an experience one is remove
@@ -15,7 +24,7 @@ class PrioritizedExperienceReplayRankBased:
     """
 
     def __init__(self, max_buffer_size, step_to_heapify, alpha):
-        self.max_buffer_size = max_buffer_size
+        super().__init__(max_buffer_size=max_buffer_size)
         # (TD, experience)
         # Probably list is not the most efficient structure to use np array ?
         self.replay_buffer = []
