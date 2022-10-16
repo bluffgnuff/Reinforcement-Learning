@@ -33,7 +33,7 @@ print("Environment observation: ", env.observation_space)
 print("Environment action space: ", env.action_space)
 print("Action list: ", env.unwrapped.get_action_meanings())
 
-env = AtariPreprocessing(env, frame_skip=env_frame_skip, grayscale_obs=True, terminal_on_life_loss=True,
+env = AtariPreprocessing(env, frame_skip=env_frame_skip, grayscale_obs=True, terminal_on_life_loss=False,
                          noop_max=30)
 env = FrameStack(env, 4)
 env.reset()
@@ -86,7 +86,7 @@ loss_function = losses.mean_squared_error
 batch_size = 32
 discount_factor = 0.95
 learning_rate = 6.25e-5
-episodes = 2000
+episodes = 1000
 clipping_value = 10
 training_freq = 4
 
