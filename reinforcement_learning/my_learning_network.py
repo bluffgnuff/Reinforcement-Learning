@@ -128,7 +128,7 @@ if file_primary.exists():
     print("Found an existing model")
     model = load_model(primary_model_file_name)
 else:
-    print("Model not found, a new one will be crate")
+    print("Model not found, a new one will be create")
     model = create_dueling_model(input_shape, actions_number)
 
 # Print a summary about the model
