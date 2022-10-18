@@ -33,7 +33,7 @@ print("Environment observation: ", env.observation_space)
 print("Environment action space: ", env.action_space)
 print("Action list: ", env.unwrapped.get_action_meanings())
 
-env = AtariPreprocessing(env, frame_skip=env_frame_skip, grayscale_obs=True, terminal_on_life_loss=False,
+env = AtariPreprocessing(env, frame_skip=env_frame_skip, grayscale_obs=True, terminal_on_life_loss=True,
                          noop_max=30)
 env = FrameStack(env, 4)
 env.reset()
@@ -44,15 +44,18 @@ print("Environment preprocessed action space: ", env.action_space)
 from tensorflow import math
 from tensorflow.keras import layers
 from tensorflow.keras import Model
+from tensorflow.keras import backend
 
 
 def create_dueling_model(input_shape, number_actions):
+    backend.set_image_data_format('channels_first')
+
     inputs = layers.Input(shape=input_shape)
 
     # Convolutions on the frames on the screen
-    layer1 = layers.Conv1D(32, 8, strides=4, activation="relu")(inputs)
-    layer2 = layers.Conv1D(64, 4, strides=2, activation="relu")(layer1)
-    layer3 = layers.Conv1D(64, 3, strides=1, activation="relu")(layer2)
+    layer1 = layers.Conv2D(32, 8, strides=4, activation="relu")(inputs)
+    layer2 = layers.Conv2D(64, 4, strides=2, activation="relu")(layer1)
+    layer3 = layers.Conv2D(64, 3, strides=1, activation="relu")(layer2)
     layer4 = layers.Flatten()(layer3)
 
     value_stream_1 = layers.Dense(512)(layer4)
@@ -77,7 +80,6 @@ from tensorflow.keras.models import load_model
 # Environment info
 input_shape = env.observation_space.shape
 actions_number = env.action_space.n
-
 # Model persistent file
 primary_model_file_name = "{}_dueling_model".format(game_name)
 
@@ -86,7 +88,7 @@ loss_function = losses.mean_squared_error
 batch_size = 32
 discount_factor = 0.95
 learning_rate = 6.25e-5
-episodes = 1000
+episodes = 2000
 clipping_value = 10
 training_freq = 4
 
@@ -176,8 +178,8 @@ def play():
     steps, reward = agent.play()
 
 
-let_training = False
-let_play = True
+let_training = True
+let_play = False
 
 if let_training:
     training()

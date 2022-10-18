@@ -83,7 +83,6 @@ class DuelDQNAgent:
 
         next_q_value_target = tf.reduce_sum(next_q_values_target * best_action_mask, axis=1)
         best_on_target_q_values = (rewards + (1-dones)*discount_factor*next_q_value_target)
-        best_on_target_q_values = best_on_target_q_values * (1 - dones) - dones
 
         mask = tf.one_hot(actions, action_space)
         importance_sampling_weights = tf.convert_to_tensor(importance_sampling_weights, tf.float32)
