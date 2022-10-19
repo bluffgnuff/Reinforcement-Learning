@@ -33,7 +33,7 @@ print("Environment observation: ", env.observation_space)
 print("Environment action space: ", env.action_space)
 print("Action list: ", env.unwrapped.get_action_meanings())
 
-env = AtariPreprocessing(env, frame_skip=env_frame_skip, grayscale_obs=True, terminal_on_life_loss=False,
+env = AtariPreprocessing(env, frame_skip=env_frame_skip, grayscale_obs=True, terminal_on_life_loss=True,
                          noop_max=30)
 env = FrameStack(env, 4)
 env.reset()
@@ -98,7 +98,7 @@ freq_replacement = 500
 # Replay buffer parameters
 buffer_size = 10000
 step_to_heapify = 200
-alpha = 0.5
+alpha = 0.7
 beta_max = 1
 beta_min = 0.5
 
