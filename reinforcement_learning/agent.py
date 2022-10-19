@@ -90,7 +90,7 @@ class DuelDQNAgent:
                                                                states, loss_function, mask, step_size)
 
         for index, td_error in zip(indexes, loss_value):
-            self.replay_buffer.update_td_error(index, td_error)
+            self.replay_buffer.update_td_error(index, abs(td_error))
 
         # We rescale the last convolutional layer to 1/sqrt(2) to balance the double backpropagation
         rescale_value = (1 / mt.sqrt(2))

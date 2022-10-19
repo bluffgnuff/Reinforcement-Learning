@@ -33,7 +33,7 @@ print("Environment observation: ", env.observation_space)
 print("Environment action space: ", env.action_space)
 print("Action list: ", env.unwrapped.get_action_meanings())
 
-env = AtariPreprocessing(env, frame_skip=env_frame_skip, grayscale_obs=True, terminal_on_life_loss=True,
+env = AtariPreprocessing(env, frame_skip=env_frame_skip, grayscale_obs=True, terminal_on_life_loss=False,
                          noop_max=30)
 env = FrameStack(env, 4)
 env.reset()
@@ -178,8 +178,8 @@ def play():
     steps, reward = agent.play()
 
 
-let_training = True
-let_play = False
+let_training = False
+let_play = True
 
 if let_training:
     training()
