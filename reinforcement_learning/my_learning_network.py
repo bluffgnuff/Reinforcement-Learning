@@ -96,8 +96,9 @@ training_freq = 4
 freq_replacement = 500
 
 # Replay buffer parameters
-buffer_size = 10000
-step_to_heapify = 200
+buffer_size = 50000
+
+#step_to_heapify = 200
 alpha = 0.7
 beta_max = 1
 beta_min = 0.5
@@ -143,7 +144,8 @@ def training():
         model_target.set_weights(model.get_weights())
         optimizer = optimizers.Adam(learning_rate=learning_rate)
         policy_training = EpsilonGreedyPolicy(model, actions_number, episodes=episodes, min_epsilon=min_epsilon)
-        replay_buffer = PrioritizedExperienceReplayRankBased(buffer_size, step_to_heapify, alpha)
+        # replay_buffer = PrioritizedExperienceReplayRankBased(buffer_size, step_to_heapify, alpha)
+        replay_buffer = PrioritizedExperienceReplayRankBased(buffer_size, alpha)
         agent = DuelDQNAgent(env, model, policy_training, model_target, optimizer, replay_buffer)
         steps, rewards = agent.double_dqn_training(batch_size, loss_function, discount_factor, freq_replacement,
                                                    training_freq, clipping_value, beta_min, beta_max, episodes)

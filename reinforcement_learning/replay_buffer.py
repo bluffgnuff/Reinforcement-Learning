@@ -1,6 +1,7 @@
 # import heapq as heap
 import numpy as np
 import scipy.stats as stats
+import heapq
 
 
 # We set a time to haepify to sort the buffer every K time step.
@@ -9,20 +10,23 @@ class PrioritizedExperienceReplayRankBased:
     contains the tuples (TD_error, experience)
     replay_buffer --- it's the max size of the buffer, over which before add an experience one is remove
     max_buffer_size --- time step before sort the structure
-    time_to_haepify --- the last time step
     mod_curr_step = 0  --- the alpha parameter used to calculate the probability of the i-th element P(i) to be sampled
     alpha -- alpha parameter
+
+    Old
+    time_to_haepify --- the last time step
     """
 
-    def __init__(self, max_buffer_size, step_to_heapify, alpha):
+    def __init__(self, max_buffer_size, alpha):
         self.max_buffer_size = max_buffer_size
         # (TD, experience)
-        # Probably list is not the most efficient structure to use np array ?
         self.replay_buffer = []
         self.alpha = alpha
-        self.heapify_threshold = step_to_heapify  # here we stock the threshold to sort the buffer
-        self.step_to_heapify = step_to_heapify  # number of next steps before heapify
+        # The experience added has the maximum priority but once it sampled it will be updated with a more correct
+        # value.
         self.max_td_error = 0
+        # self.heapify_threshold = step_to_heapify  # here we stock the threshold to sort the buffer
+        # self.step_to_heapify = step_to_heapify  # number of next steps before heapify
 
     def set_alpha(self, alpha):
         self.alpha = alpha
@@ -38,15 +42,17 @@ class PrioritizedExperienceReplayRankBased:
         if len(self.replay_buffer) > 0:
             self.max_td_error = self.replay_buffer[0][0]
 
-        self.replay_buffer.append((self.max_td_error, experience))
-        self.step_to_heapify -= 1
-        if self.step_to_heapify == 0:
-            self.replay_buffer.sort(key=lambda el: el[0], reverse=True)
-            self.step_to_heapify = self.heapify_threshold
+        heapq.heappush(self.replay_buffer, (-self.max_td_error, experience))
+
+        # Old
+        # self.step_to_heapify -= 1
+        # if self.step_to_heapify == 0:
+        #   self.replay_buffer.sort(key=lambda el: el[0], reverse=True)
+        #   self.step_to_heapify = self.heapify_threshold
 
     # Remove experience from the buffer
-    def remove_experience(self):
-        self.replay_buffer.pop(-1)
+    def remove_experience(self, index = -1):
+        self.replay_buffer.pop(index)
 
     @staticmethod
     def zip_f_sampling(alpha, n):
@@ -82,4 +88,7 @@ class PrioritizedExperienceReplayRankBased:
         return indexes, experiences, importance_sampling_weights_normalized
 
     def update_td_error(self, index, td_error):
-        self.replay_buffer[index] = [td_error, self.replay_buffer[index][1]]
+        experience = self.replay_buffer[index]
+        self.remove_experience(index)
+        heapq.heappush(self.replay_buffer, (-td_error, experience))
+
