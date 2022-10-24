@@ -8,7 +8,7 @@ class EpsilonGreedyPolicy:
         self.model = model
         self.action_space_size = action_space_size
         self.min_epsilon = min_epsilon
-        self.episode = 1
+        self.episode = 1tra
         self.episodes = episodes
         self.decay_rate = decay_rate
 
