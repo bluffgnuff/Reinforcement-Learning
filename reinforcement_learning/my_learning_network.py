@@ -143,7 +143,6 @@ def training():
         model_target.set_weights(model.get_weights())
         optimizer = optimizers.Adam(learning_rate=learning_rate)
         policy_training = EpsilonGreedyPolicy(model, actions_number, episodes=episodes, min_epsilon=min_epsilon)
-        # replay_buffer = PrioritizedExperienceReplayRankBased(buffer_size, step_to_heapify, alpha)
         replay_buffer = PrioritizedExperienceReplayRankBased(buffer_size, alpha)
         agent = DuelDQNAgent(env, model, policy_training, model_target, optimizer, replay_buffer)
         steps, rewards = agent.double_dqn_training(batch_size, loss_function, discount_factor, freq_replacement,

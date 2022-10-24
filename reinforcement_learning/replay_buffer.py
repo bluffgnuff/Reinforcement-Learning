@@ -7,14 +7,13 @@ import heapq
 # We set a time to haepify to sort the buffer every K time step.
 class PrioritizedExperienceReplayRankBased:
     """
-    contains the tuples (TD_error, experience)
-    replay_buffer --- it's the max size of the buffer, over which before add an experience one is remove
-    max_buffer_size --- time step before sort the structure
-    mod_curr_step = 0  --- the alpha parameter used to calculate the probability of the i-th element P(i) to be sampled
-    alpha -- alpha parameter
+    replay_buffer       - contains the tuples (TD_error, transaction_id, experience)
+    max_buffer_size     - it's the max size of the buffer, over which before add an experience one is remove
+    alpha               - the alpha parameter used to calculate the probability of the i-th element P(i) to be sampled
+    self.max_td_error   - max td in the buffer
 
     Old
-    time_to_haepify --- the last time step
+    time_to_haepify - time steps before sort the structure
     """
 
     def __init__(self, max_buffer_size, alpha):
@@ -44,8 +43,6 @@ class PrioritizedExperienceReplayRankBased:
             self.remove_experience()
 
         # New experiences where td_error is unknown are set with the max td_error
-        # NB we are considering the max td error as the error of the experience in first position, but the buffer may
-        # not have been sorted yet
         if len(self.replay_buffer) > 0:
             self.max_td_error = self.replay_buffer[0][0]
         state, action, reward, next_state, done = experience
