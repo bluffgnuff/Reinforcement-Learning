@@ -45,9 +45,7 @@ class PrioritizedExperienceReplayRankBased:
         # New experiences where td_error is unknown are set with the max td_error
         if len(self.replay_buffer) > 0:
             self.max_td_error = self.replay_buffer[0][0]
-        state, action, reward, next_state, done = experience
-        heapq.heappush(self.replay_buffer, (-self.max_td_error, transaction_id, (state, action, reward, next_state,
-                                                                                 done)))
+        heapq.heappush(self.replay_buffer, (-self.max_td_error, transaction_id, experience))
         # Old
         # self.step_to_heapify -= 1
         # if self.step_to_heapify == 0:

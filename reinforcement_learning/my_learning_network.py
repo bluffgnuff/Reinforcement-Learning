@@ -96,7 +96,7 @@ training_freq = 4
 freq_replacement = 500
 
 # Replay buffer parameters
-buffer_size = 50000
+buffer_size = 100000
 # step_to_heapify = 200
 alpha = 0.7
 beta_max = 1
