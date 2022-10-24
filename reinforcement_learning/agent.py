@@ -68,7 +68,8 @@ class DuelDQNAgent:
     # Collects samples of the previous experiences from the replay buffer
     # and use them to improve the weights update of the Neural Network.
     def double_dqn_training_step(self, batch_size, loss_function, discount_factor, clipping_value, beta, step_size=1):
-        indexes, experiences, importance_sampling_weights = self.replay_buffer.sample_experience(batch_size, beta)
+        indexes, transaction_ids, experiences, importance_sampling_weights = self.replay_buffer.sample_experience(
+            batch_size, beta)
         states, actions, rewards, next_states, dones = [np.array([experience[field_index] for experience in experiences]
                                                                  ) for field_index in range(5)]
 
@@ -82,16 +83,16 @@ class DuelDQNAgent:
         best_action_mask = tf.one_hot(best_actions, action_space)
 
         next_q_value_target = tf.reduce_sum(next_q_values_target * best_action_mask, axis=1)
-        best_on_target_q_values = (rewards + (1-dones)*discount_factor*next_q_value_target)
-        best_on_target_q_values = best_on_target_q_values * (1-dones) - dones
+        best_on_target_q_values = (rewards + (1 - dones) * discount_factor * next_q_value_target)
+        # best_on_target_q_values = best_on_target_q_values * (1-dones) - dones
 
         mask = tf.one_hot(actions, action_space)
         importance_sampling_weights = tf.convert_to_tensor(importance_sampling_weights, tf.float32)
         weighted_gradient, loss_value = self.weighted_gradient(best_on_target_q_values, importance_sampling_weights,
                                                                states, loss_function, mask, step_size)
 
-        for index, td_error in zip(indexes, loss_value):
-            self.replay_buffer.update_td_error(index, abs(td_error))
+        for index, td_error, transaction_id in zip(indexes, loss_value, transaction_ids):
+            self.replay_buffer.update_td_error(index, abs(td_error), transaction_id)
 
         # We rescale the last convolutional layer to 1/sqrt(2) to balance the double backpropagation
         rescale_value = (1 / mt.sqrt(2))
@@ -106,34 +107,41 @@ class DuelDQNAgent:
 
     # We use the training step just when there is enough samples on the replay buffer
     def double_dqn_training(self, batch_size, loss_function, discount_factor, freq_replacement, training_freq,
-                            clipping_value, beta_min, beta_max, max_episodes=600):
-        rewards = []
-        steps = []
+                            clipping_value, beta_min, beta_max, max_episodes=600, max_steps=108000):
+        rewards_stock = []
+        steps_stock = []
+        cumulative_steps = 0
 
-        for episode in range(1, max_episodes+1):
+        for episode in range(1, max_episodes + 1):
             state = self.env.reset()
-            cumulative_reward = 0
-            step = 0
+            rewards = 0
+            steps = 0
             beta = max(beta_min, (beta_max * episode / max_episodes))
 
             while True:
                 action, reward, next_state, done, info = self.play_one_step(state)
                 experience = [state, action, reward, next_state, done]
-                cumulative_reward += reward
-                self.replay_buffer.add_experience(experience)
+                rewards += reward
+                self.replay_buffer.add_experience(cumulative_steps, experience)
+                cumulative_steps += 1
+                steps += 1
+
+                if len(self.replay_buffer.replay_buffer) > batch_size and (cumulative_steps % training_freq) == 0:
+                    self.double_dqn_training_step(batch_size, loss_function, discount_factor, clipping_value, beta)
+                if (cumulative_steps % freq_replacement) == 0:
+                    self.model_target.set_weights(self.model_primary.get_weights())
+                if steps == max_steps:
+                    print(
+                        "ABORTED episode = {} number of steps = {} reward = {}".format(episode, steps, rewards))
                 if done:
                     print(
-                        "DONE episode = {} number of steps = {} reward = {}".format(episode, step, cumulative_reward))
-                    rewards.append(cumulative_reward)
-                    steps.append(step)
+                        "DONE episode = {} number of steps = {} reward = {}".format(episode, steps, rewards))
+                if done or steps == max_steps:
+                    rewards_stock.append(rewards)
+                    steps_stock.append(steps)
                     break
-                if len(self.replay_buffer.replay_buffer) > batch_size and (step % training_freq) == 0:
-                    self.double_dqn_training_step(batch_size, loss_function, discount_factor, clipping_value, beta)
-                if (step % freq_replacement) == 0:
-                    self.model_target.set_weights(self.model_primary.get_weights())
                 state = next_state
-                step = step + 1
 
             self.policy.next_episode()
 
-        return steps, rewards
+        return steps_stock, rewards_stock

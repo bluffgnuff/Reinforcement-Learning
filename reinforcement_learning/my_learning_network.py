@@ -97,8 +97,7 @@ freq_replacement = 500
 
 # Replay buffer parameters
 buffer_size = 50000
-
-#step_to_heapify = 200
+# step_to_heapify = 200
 alpha = 0.7
 beta_max = 1
 beta_min = 0.5
@@ -164,14 +163,13 @@ def training():
         plot_result("Episode", "Steps", range(1, episodes + 1), steps, name_plot_eps_steps)
         plot_result("Episode", "Rewards", range(1, episodes + 1), rewards, name_plot_eps_rewards)
 
+        csv_name = "{}.csv".format(game_name)
+        dict = {'steps': steps, 'rewards': rewards}
+        df = pd.DataFrame(dict)
+        df.to_csv(csv_name, mode='a', header=False)
+
     finally:
         model.save(primary_model_file_name)
-
-        csv_name = "{}.csv".format(game_name)
-        if steps is not None and rewards is not None:
-            dict = {'steps': steps, 'rewards': rewards}
-            df = pd.DataFrame(dict)
-            df.to_csv(csv_name, mode='a', header=False)
 
 
 def play():
@@ -180,14 +178,13 @@ def play():
     steps, reward = agent.play()
 
 
-let_training = False
-let_play = True
+let_training = True
+let_play = False
 
 if let_training:
     training()
 
 if let_play:
-    env.terminal_on_life_loss = False
     play()
 
 env.close()

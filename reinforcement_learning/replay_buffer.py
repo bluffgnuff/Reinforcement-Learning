@@ -31,19 +31,26 @@ class PrioritizedExperienceReplayRankBased:
     def set_alpha(self, alpha):
         self.alpha = alpha
 
-    # Add experience in the buffer mapping it with its last TD_error
-    def add_experience(self, experience):
+    # Add experience in the buffer mapping it with its last TD_error.
+    # Heapq structure try to sort the elements of different tuple comparing from the first element of the tuple and
+    # continuing with next element until the two tuples have an element different. We are interested in sorting by TD,
+    # we don't care to sort on states, actions, or rewards. So, we use the transaction id to sort the transaction
+    # that is older in the buffer.
+    # The transaction_id of a transaction could be the -ith frame number of the whole training representing
+    # when the transaction happened.
+    # NB This approach avoids headppush fails when try to compare two states.
+    def add_experience(self, transaction_id, experience):
         if len(self.replay_buffer) == self.max_buffer_size:
             self.remove_experience()
 
-        # New experience where td_error is unknown are set with the max td error
+        # New experiences where td_error is unknown are set with the max td_error
         # NB we are considering the max td error as the error of the experience in first position, but the buffer may
         # not have been sorted yet
         if len(self.replay_buffer) > 0:
             self.max_td_error = self.replay_buffer[0][0]
-
-        heapq.heappush(self.replay_buffer, (-self.max_td_error, experience))
-
+        state, action, reward, next_state, done = experience
+        heapq.heappush(self.replay_buffer, (-self.max_td_error, transaction_id, (state, action, reward, next_state,
+                                                                                 done)))
         # Old
         # self.step_to_heapify -= 1
         # if self.step_to_heapify == 0:
@@ -51,7 +58,7 @@ class PrioritizedExperienceReplayRankBased:
         #   self.step_to_heapify = self.heapify_threshold
 
     # Remove experience from the buffer
-    def remove_experience(self, index = -1):
+    def remove_experience(self, index=-1):
         self.replay_buffer.pop(index)
 
     @staticmethod
@@ -69,6 +76,7 @@ class PrioritizedExperienceReplayRankBased:
         importance_sampling_weights = []
         n = len(self.replay_buffer) - 1
         indexes = []
+        transaction_id = []
 
         for i in range(0, batch_size):
             # Sample index and check the experience is not already present in the batch
@@ -80,15 +88,15 @@ class PrioritizedExperienceReplayRankBased:
             rank = index + 1
             pj = 1 / rank
             importance_sampling_weights.append(((n * pj) ** (-beta)))
-            experiences.append(self.replay_buffer[index][1])
+            transaction_id.append(self.replay_buffer[index][1])
+            experiences.append(self.replay_buffer[index][2])
 
         # Normalization step
         max_weight = max(importance_sampling_weights)
         importance_sampling_weights_normalized = np.divide(importance_sampling_weights, max_weight)
-        return indexes, experiences, importance_sampling_weights_normalized
+        return indexes, transaction_id, experiences, importance_sampling_weights_normalized
 
-    def update_td_error(self, index, td_error):
-        experience = self.replay_buffer[index]
+    def update_td_error(self, index, td_error, transaction_id):
+        experience = self.replay_buffer[index][2]
         self.remove_experience(index)
-        heapq.heappush(self.replay_buffer, (-td_error, experience))
-
+        heapq.heappush(self.replay_buffer, (-td_error, transaction_id, experience))
