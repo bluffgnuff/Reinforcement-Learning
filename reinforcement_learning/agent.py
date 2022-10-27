@@ -1,5 +1,4 @@
 import math as mt
-
 import tensorflow as tf
 import numpy as np
 
@@ -18,8 +17,7 @@ class DuelDQNAgent:
     def set_policy(self, policy):
         self.policy = policy
 
-    # Execs one action receiving in input the environment, its state, the current episode.
-    # If training its true add the experience in the replay buffer
+    # Execs one action receiving in input the current state
     def play_one_step(self, state):
         action = self.policy.get_action(state)
         # print("action {}".format(action))
@@ -107,7 +105,7 @@ class DuelDQNAgent:
 
     # We use the training step just when there is enough samples on the replay buffer
     def double_dqn_training(self, batch_size, loss_function, discount_factor, freq_replacement, training_freq,
-                            clipping_value, beta_min, beta_max, max_episodes=600, max_steps=108000):
+                            clipping_value, beta_min, beta_max, max_episodes=600, max_steps=10800):
         rewards_stock = []
         steps_stock = []
         cumulative_steps = 0

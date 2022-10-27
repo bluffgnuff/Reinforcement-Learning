@@ -6,7 +6,7 @@ from policy import EpsilonGreedyPolicy
 from replay_buffer import PrioritizedExperienceReplayRankBased
 
 # Searching for available environments
-game_name = "Phoenix"
+game_name = "Asterix"
 all_envs = envs.registry.values()
 env_ids = [env_spec.id for env_spec in all_envs]
 
@@ -20,7 +20,7 @@ from gym.wrappers import AtariPreprocessing
 from gym.wrappers import FrameStack
 
 # Make Parameters:
-game_name = "Phoenix"
+game_name = "Asterix"
 game_mode = "NoFrameskip"  # [Deterministic | NoFrameskip | ram | ramDeterministic | ramNoFrameskip ]
 game_version = "v4"  # [v0 | v4 | v5]
 env_name = '{}{}-{}'.format(game_name, game_mode, game_version)
@@ -113,8 +113,8 @@ matplotlib.use('Agg')
 
 
 def plot_result(x_label, y_label, x, y, name):
-    plt.ylabel(x_label)
-    plt.xlabel(y_label)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
     plt.plot(x, y)
     plt.savefig(name)
     plt.close()

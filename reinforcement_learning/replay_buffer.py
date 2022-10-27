@@ -4,7 +4,6 @@ import scipy.stats as stats
 import heapq
 
 
-# We set a time to haepify to sort the buffer every K time step.
 class PrioritizedExperienceReplayRankBased:
     """
     replay_buffer       - contains the tuples (TD_error, transaction_id, experience)
