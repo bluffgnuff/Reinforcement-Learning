@@ -3,6 +3,8 @@ import numpy as np
 import scipy.stats as stats
 import heapq
 
+from decorator import append
+
 
 class PrioritizedExperienceReplayRankBased:
     """
@@ -45,11 +47,6 @@ class PrioritizedExperienceReplayRankBased:
         if len(self.replay_buffer) > 0:
             self.max_td_error = self.replay_buffer[0][0]
         heapq.heappush(self.replay_buffer, (-self.max_td_error, transaction_id, experience))
-        # Old
-        # self.step_to_heapify -= 1
-        # if self.step_to_heapify == 0:
-        #   self.replay_buffer.sort(key=lambda el: el[0], reverse=True)
-        #   self.step_to_heapify = self.heapify_threshold
 
     # Remove experience from the buffer
     def remove_experience(self, index=-1):
@@ -90,7 +87,10 @@ class PrioritizedExperienceReplayRankBased:
         importance_sampling_weights_normalized = np.divide(importance_sampling_weights, max_weight)
         return indexes, transaction_id, experiences, importance_sampling_weights_normalized
 
-    def update_td_error(self, index, td_error, transaction_id):
-        experience = self.replay_buffer[index][2]
-        self.remove_experience(index)
-        heapq.heappush(self.replay_buffer, (-td_error, transaction_id, experience))
+    def update_td_error(self, indexes, td_errors):
+        # TODO update tupla e dopo ordina
+        for index, td_error in zip(indexes, td_errors):
+            my_list = list(self.replay_buffer[index])
+            my_list[0] = -abs(td_error)
+            self.replay_buffer[index] = tuple(my_list)
+        heapq.heapify(self.replay_buffer)

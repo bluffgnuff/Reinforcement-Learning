@@ -1,7 +1,7 @@
 import math as mt
 import tensorflow as tf
 import numpy as np
-from tensorflow.keras import losses
+
 
 class DuelDQNAgent:
 
@@ -64,7 +64,6 @@ class DuelDQNAgent:
         grads = tape.gradient(loss_value, self.model_primary.trainable_variables)
         return grads, loss_values.numpy()
 
-
     @staticmethod
     def rescale_grad(gradients, rescale_value, index):
         tensor_to_scale = gradients[index]
@@ -96,10 +95,8 @@ class DuelDQNAgent:
         mask = tf.one_hot(actions, action_space)
         importance_sampling_weights = tf.convert_to_tensor(importance_sampling_weights, tf.float32)
         weighted_gradient, loss_values = self.weighted_gradient(best_on_target_q_values, importance_sampling_weights,
-                                                               states, loss_function, mask)
-        # TODO checkme
-        for index, td_error, transaction_id in zip(indexes, loss_values, transaction_ids):
-            self.replay_buffer.update_td_error(index, abs(td_error), transaction_id)
+                                                                states, loss_function, mask)
+        self.replay_buffer.update_td_error(indexes, loss_values)
 
         # We rescale the last convolutional layer to 1/sqrt(2) to balance the double backpropagation
         rescale_value = (1 / mt.sqrt(2))
