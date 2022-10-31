@@ -84,7 +84,7 @@ actions_number = env.action_space.n
 primary_model_file_name = "{}_dueling_model".format(game_name)
 
 # Training Parameters
-loss_function = losses.mean_squared_error
+loss_function = losses.MeanSquaredError(reduction=losses.Reduction.NONE)
 batch_size = 32
 discount_factor = 0.95
 learning_rate = 6.25e-5
@@ -128,7 +128,7 @@ import pandas as pd
 file_primary = Path(primary_model_file_name)
 if file_primary.exists():
     print("Found an existing model")
-    model = load_model(primary_model_file_name)
+    model = load_model(primary_model_file_name, compile=False)
 else:
     print("Model not found, a new one will be create")
     model = create_dueling_model(input_shape, actions_number)

@@ -1,7 +1,7 @@
 import math as mt
 import tensorflow as tf
 import numpy as np
-
+from tensorflow.keras import losses
 
 class DuelDQNAgent:
 
@@ -40,21 +40,29 @@ class DuelDQNAgent:
         return steps, cumulative_reward
 
     # Double DQN Training
+    #     @tf.function
     @staticmethod
     def gradient_clipping(gradients, clipping_value):
         clipped_gradients = [(tf.clip_by_norm(grad, clipping_value)) for grad in gradients]
         return clipped_gradients
 
-    def weighted_gradient(self, best_on_target_q_values, importance_sampling_weights, states, loss_function, mask,
-                          step_size=1):
+    #     @tf.function
+    def weighted_gradient(self, best_on_target_q_values, importance_sampling_weights, states, loss_function, mask):
         with tf.GradientTape() as tape:
+            batch_size = len(states)
             tape.watch(importance_sampling_weights)
+            best_on_target_q_values = tf.expand_dims(best_on_target_q_values, 1)
             all_q_values = self.model_primary(states)
-            q_values = tf.reduce_sum(all_q_values * mask, axis=1, keepdims=True)
-            loss_value = loss_function(best_on_target_q_values, q_values)
-            loss_corrected = loss_value * importance_sampling_weights * step_size
-        grads = tape.gradient(loss_corrected, self.model_primary.trainable_variables)
-        return grads, loss_value
+            q_values = tf.reduce_sum(all_q_values * mask, axis=1)
+            q_values = tf.expand_dims(q_values, 1)
+            # The target and the predicted values has been expanded following the instruction in:
+            # https://www.tensorflow.org/api_docs/python/tf/compat/v1/losses/mean_squared_error
+            loss_values = loss_function(y_true=best_on_target_q_values, y_pred=q_values,
+                                        sample_weight=importance_sampling_weights)
+            loss_value = tf.reduce_sum(loss_values) / batch_size
+
+        grads = tape.gradient(loss_value, self.model_primary.trainable_variables)
+        return grads, loss_values.numpy()
 
     @staticmethod
     def rescale_grad(gradients, rescale_value, index):
@@ -86,10 +94,10 @@ class DuelDQNAgent:
 
         mask = tf.one_hot(actions, action_space)
         importance_sampling_weights = tf.convert_to_tensor(importance_sampling_weights, tf.float32)
-        weighted_gradient, loss_value = self.weighted_gradient(best_on_target_q_values, importance_sampling_weights,
-                                                               states, loss_function, mask, step_size)
-
-        for index, td_error, transaction_id in zip(indexes, loss_value, transaction_ids):
+        weighted_gradient, loss_values = self.weighted_gradient(best_on_target_q_values, importance_sampling_weights,
+                                                               states, loss_function, mask)
+        # TODO checkme
+        for index, td_error, transaction_id in zip(indexes, loss_values, transaction_ids):
             self.replay_buffer.update_td_error(index, abs(td_error), transaction_id)
 
         # We rescale the last convolutional layer to 1/sqrt(2) to balance the double backpropagation
