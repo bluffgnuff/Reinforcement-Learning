@@ -64,6 +64,7 @@ class DuelDQNAgent:
         grads = tape.gradient(loss_value, self.model_primary.trainable_variables)
         return grads, loss_values.numpy()
 
+
     @staticmethod
     def rescale_grad(gradients, rescale_value, index):
         tensor_to_scale = gradients[index]
