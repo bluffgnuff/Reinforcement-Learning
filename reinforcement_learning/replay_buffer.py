@@ -3,9 +3,6 @@ import numpy as np
 import scipy.stats as stats
 import heapq
 
-from decorator import append
-
-
 class PrioritizedExperienceReplayRankBased:
     """
     replay_buffer       - contains the tuples (TD_error, transaction_id, experience)
