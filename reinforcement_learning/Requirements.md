@@ -4,4 +4,5 @@
 - Gym 0.25.1
 - Nvidia CUDA driver
   - sudo pacman -Syu tensorflow-cuda cuda cudnn python-pycuda python-tensorflow-cuda python-matplotlib
-  -  export XLA_FLAGS=--xla_gpu_cuda_data_dir=/opt/cuda  
+  -  export XLA_FLAGS=--xla_gpu_cuda_data_dir=/opt/cuda
+  
